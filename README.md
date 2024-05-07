@@ -1,3 +1,5 @@
+[![GitHub Activity][commits-shield]][commits]
+[![License][license-shield]](LICENSE)
 [![Logo](https://github.com/peterszombati/xapi-node/raw/master/docs/xtb-logo.png)](https://www.xtb.com/en)
 # xStation5 API Golang Library
 
@@ -30,3 +32,11 @@ for {
 	fmt.Printf("%+v\n", candle)
 }
 ```
+
+## Contributions
+
+Contributions and feedback are welcome! If you encounter any issues, have suggestions for improvement, or would like to contribute new features, please open an issue or submit a pull request on the GitHub repository.
+
+[commits-shield]: https://img.shields.io/github/commit-activity/y/mateogreil/xapi-go.svg?style=for-the-badge
+[commits]: https://github.com/mateogreil/xapi-go/commits/master
+[license-shield]: https://img.shields.io/github/license/mateogreil/xapi-go.svg?style=for-the-badge
