@@ -2,6 +2,7 @@ package xapi
 
 import (
 	"fmt"
+	"time"
 
 	socket "github.com/MateoGreil/xapi-go/internal/protocols/socket"
 	stream "github.com/MateoGreil/xapi-go/internal/protocols/stream"
@@ -16,6 +17,7 @@ type client struct {
 
 const (
 	websocketBaseURL = "wss://ws.xtb.com"
+	pingInterval     = 5 * time.Minute
 )
 
 func NewClient(userId string, password string, connectionType string) (*client, error) {
@@ -52,8 +54,37 @@ func NewClient(userId string, password string, connectionType string) (*client, 
 		streamConn:      streamConn,
 		streamSessionId: streamSessionId,
 	}
+	go c.pingSocket()
+	go c.pingStream()
 
 	return c, nil
+}
+
+func (c *client) pingSocket() {
+	for {
+		request := socket.Request{
+			Command:   "ping",
+			Arguments: nil,
+		}
+		c.conn.WriteJSON(request)
+		response := socket.Response{}
+		err := c.conn.ReadJSON(&response)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		time.Sleep(pingInterval)
+	}
+}
+
+func (c *client) pingStream() {
+	for {
+		request := stream.Request{
+			Command:         "ping",
+			StreamSessionId: c.streamSessionId,
+		}
+		c.streamConn.WriteJSON(request)
+		time.Sleep(pingInterval)
+	}
 }
 
 func login(conn *websocket.Conn, userId string, password string) (string, error) {
