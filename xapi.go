@@ -1,18 +1,22 @@
 package xapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
-	socket "github.com/MateoGreil/xapi-go/internal/protocols/socket"
-	stream "github.com/MateoGreil/xapi-go/internal/protocols/stream"
+	"github.com/MateoGreil/xapi-go/internal/protocols/socket"
+	"github.com/MateoGreil/xapi-go/internal/protocols/stream"
 	"github.com/gorilla/websocket"
 )
 
 type client struct {
-	conn            *websocket.Conn
-	streamConn      *websocket.Conn
-	streamSessionId string
+	conn                 *websocket.Conn
+	streamConn           *websocket.Conn
+	streamSessionId      string
+	socketMessageChannel chan interface{}
+	streamMessageChannel chan interface{}
+	CandlesChannel       chan stream.Candle
 }
 
 const (
@@ -47,17 +51,60 @@ func NewClient(userId string, password string, connectionType string) (*client, 
 	if err != nil {
 		return nil, err
 	}
-	getKeepAlive(conn, streamSessionId)
+	getKeepAlive(streamConn, streamSessionId)
 
 	c := &client{
-		conn:            conn,
-		streamConn:      streamConn,
-		streamSessionId: streamSessionId,
+		conn:                 conn,
+		streamConn:           streamConn,
+		streamSessionId:      streamSessionId,
+		socketMessageChannel: make(chan interface{}),
+		streamMessageChannel: make(chan interface{}),
+		CandlesChannel:       make(chan stream.Candle),
 	}
 	go c.pingSocket()
 	go c.pingStream()
+	go c.listenStream()
+	go c.socketWriteJSON()
+	go c.streamWriteJSON()
 
 	return c, nil
+}
+
+func (c *client) SubscribeCandles(symbol string) {
+	request := stream.GetCandlesRequest{
+		Command:         "getCandles",
+		StreamSessionId: c.streamSessionId,
+		Symbol:          symbol,
+	}
+	c.streamMessageChannel <- request
+}
+
+func (c *client) listenStream() {
+	for {
+		_, message, err := c.streamConn.ReadMessage()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		response := stream.Response{}
+		err = json.Unmarshal(message, &response)
+		if err != nil {
+			fmt.Printf("message: %s\n", message)
+			fmt.Println(err.Error())
+		}
+		switch response.Command {
+		case "candle":
+			responseCandle := stream.ResponseCandle{}
+			err = json.Unmarshal(message, &responseCandle)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			c.CandlesChannel <- responseCandle.Data
+		case "keepAlive":
+			fmt.Printf("keepAlive received\n")
+		default:
+			fmt.Printf("Unknown stream message: %s\n", message)
+		}
+	}
 }
 
 func (c *client) pingSocket() {
@@ -66,12 +113,12 @@ func (c *client) pingSocket() {
 			Command:   "ping",
 			Arguments: nil,
 		}
-		c.conn.WriteJSON(request)
-		response := socket.Response{}
-		err := c.conn.ReadJSON(&response)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+		c.socketMessageChannel <- request
+		// response := socket.Response{}
+		// err := c.conn.ReadJSON(&response)
+		// if err != nil {
+		// 	fmt.Println(err.Error())
+		// }
 		time.Sleep(pingInterval)
 	}
 }
@@ -82,8 +129,24 @@ func (c *client) pingStream() {
 			Command:         "ping",
 			StreamSessionId: c.streamSessionId,
 		}
-		c.streamConn.WriteJSON(request)
+		c.streamMessageChannel <- request
 		time.Sleep(pingInterval)
+	}
+}
+
+func (c *client) streamWriteJSON() {
+	for {
+		message := <-c.streamMessageChannel
+		c.streamConn.WriteJSON(message)
+		fmt.Printf("messageStream: %+v\n", message)
+	}
+}
+
+func (c *client) socketWriteJSON() {
+	for {
+		message := <-c.socketMessageChannel
+		c.conn.WriteJSON(message)
+		fmt.Printf("messageSocket: %+v\n", message)
 	}
 }
 
@@ -114,4 +177,19 @@ func getKeepAlive(conn *websocket.Conn, streamSessionId string) {
 		StreamSessionId: streamSessionId,
 	}
 	conn.WriteJSON(keepAliveReq)
+	_, message, err := conn.ReadMessage()
+	if err != nil {
+		// TODO: Handle errors
+		fmt.Println(err.Error())
+	}
+	response := stream.KeepAliveResponse{}
+	err = json.Unmarshal(message, &response)
+	if err != nil {
+		// TODO: Handle errors
+		fmt.Println(err.Error())
+	}
+	if response.Command != "keepAlive" {
+		// TODO: Handle errors
+		fmt.Println(err.Error())
+	}
 }
