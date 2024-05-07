@@ -21,3 +21,12 @@ xapiDemoClient, err := xapi.NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI
 xapiRealClient, err := xapi.NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "real")
 ```
 
+### GetCandles
+
+```go
+xapiClient.SubscribeCandles("EURUSD")
+for {
+	candle := <-xapiClient.CandlesChannel
+	fmt.Printf("%+v\n", candle)
+}
+```
