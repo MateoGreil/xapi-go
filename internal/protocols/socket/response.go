@@ -1,7 +1,9 @@
 package socket
 
 type Response struct {
-	Status bool `json:"status"`
+	Status     bool   `json:"status"`
+	ErrorCode  string `json:"errorCode"`
+	ErrorDescr string `json:"errorDescr"`
 }
 
 type LoginResponse struct {

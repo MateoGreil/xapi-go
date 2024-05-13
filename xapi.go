@@ -109,16 +109,21 @@ func (c *client) listenStream() {
 
 func (c *client) pingSocket() {
 	for {
-		request := socket.Request{
-			Command:   "ping",
-			Arguments: nil,
-		}
+		request := struct {
+			Command string `json:"command"`
+		}{Command: "ping"}
 		c.socketMessageChannel <- request
-		// response := socket.Response{}
-		// err := c.conn.ReadJSON(&response)
-		// if err != nil {
-		// 	fmt.Println(err.Error())
-		// }
+		response := socket.Response{}
+		err := c.conn.ReadJSON(&response)
+		if err != nil {
+			// TODO: Handle errors
+			fmt.Println(err.Error())
+		}
+		if response.Status != true {
+			fmt.Printf("Error on ping: %+v\n", response)
+		} else {
+			fmt.Println("Ping success")
+		}
 		time.Sleep(pingInterval)
 	}
 }
