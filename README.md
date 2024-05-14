@@ -14,6 +14,8 @@ API documentation: [http://developers.xstore.pro/documentation](http://developer
 This xStation5 API Golang Library is not affiliated with, endorsed by, or in any way officially connected to the xStation5 trading platform or its parent company. The library is provided as-is and is not guaranteed to be suitable for any particular purpose. The use of this library is at your own risk, and the author(s) of this library will not be liable for any damages arising from the use or misuse of this library.
 <!-- Please refer to the license file for more information. -->
 
+**Work in progress library**. You can start using it, but breaking changes could happen, and all the endpoints are not handled by this library.
+
 ## Usage
 
 ### Authentication
@@ -62,3 +64,8 @@ Contributions and feedback are welcome! If you encounter any issues, have sugges
 [commits-shield]: https://img.shields.io/github/commit-activity/y/mateogreil/xapi-go.svg?style=for-the-badge
 [commits]: https://github.com/mateogreil/xapi-go/commits/master
 [license-shield]: https://img.shields.io/github/license/mateogreil/xapi-go.svg?style=for-the-badge
+
+## Alternative
+
+- [xapi-node](https://github.com/peterszombati/xapi-node)
+- [xapi-python](https://github.com/pawelkn/xapi-python)
