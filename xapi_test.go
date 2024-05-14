@@ -46,15 +46,30 @@ func TestGetCandles(t *testing.T) {
 		t.Error(err)
 	}
 
-	start := int(time.Now().Add(-24 * 31 * time.Hour).UnixNano())
-	period := 5
-	ticks := 2
-	candles, err := xapiClient.GetCandles(start, period, 0, "EURUSD", ticks)
+	start := int(time.Now().Add(-24 * 1 * time.Hour).UnixMilli())
+	fmt.Printf("timestamp start: %d", start)
+	period := 1
+	ticks := 1
+	end := int(time.Now().Add(-24 * 1 * time.Hour).UnixMilli())
+	candles, err := xapiClient.GetCandles(start, period, end, "EURUSD", ticks)
 	if err != nil {
 		t.Error(err)
 	} else {
-		if len(candles) != 1 {
-			t.Error("Should contain 1 candle")
+		length := len(candles)
+		if length != 1 {
+			t.Errorf("Should contain 1 candle, but contains %d", length)
 		}
 	}
+
+	ticks = 50
+	candles, err = xapiClient.GetCandles(start, period, end, "EURUSD", ticks)
+	if err != nil {
+		t.Error(err)
+	} else {
+		length := len(candles)
+		if length != 50 {
+			t.Errorf("Should contain 50 candle, but contains %d", length)
+		}
+	}
+
 }

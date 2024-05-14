@@ -93,21 +93,18 @@ func (c *client) GetCandles(end int, period int, start int, symbol string, ticks
 			},
 		},
 	}
-	// response := socket.Response{}
+	response := socket.Response{}
 	c.mutexSendMessage.Lock()
 	c.conn.WriteJSON(request)
-	_, message, _ := c.conn.ReadMessage()
-	fmt.Printf("RESPONSE=%s\n", message)
-	return nil, nil
-	// err := c.conn.ReadJSON(&response)
-	// c.mutexSendMessage.Unlock()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if response.Status != true {
-	// 	return nil, fmt.Errorf("Error on sending getChartRangeRequest: %+v, response:, %+v", request, response)
-	// }
-	// return response.ReturnData.RateInfos, nil
+	err := c.conn.ReadJSON(&response)
+	c.mutexSendMessage.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	if response.Status != true {
+		return nil, fmt.Errorf("Error on sending getChartRangeRequest: %+v, response:, %+v", request, response)
+	}
+	return response.ReturnData.RateInfos, nil
 }
 
 func (c *client) listenStream() {
