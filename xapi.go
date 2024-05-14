@@ -3,6 +3,7 @@ package xapi
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/MateoGreil/xapi-go/internal/protocols/socket"
@@ -14,9 +15,9 @@ type client struct {
 	conn                 *websocket.Conn
 	streamConn           *websocket.Conn
 	streamSessionId      string
-	socketMessageChannel chan interface{}
 	streamMessageChannel chan interface{}
 	CandlesChannel       chan stream.Candle
+	mutexSendMessage     sync.Mutex
 }
 
 const (
@@ -53,18 +54,18 @@ func NewClient(userId string, password string, connectionType string) (*client, 
 	}
 	getKeepAlive(streamConn, streamSessionId)
 
+	var m sync.Mutex
 	c := &client{
 		conn:                 conn,
 		streamConn:           streamConn,
 		streamSessionId:      streamSessionId,
-		socketMessageChannel: make(chan interface{}),
 		streamMessageChannel: make(chan interface{}),
 		CandlesChannel:       make(chan stream.Candle),
+		mutexSendMessage:     m,
 	}
 	go c.pingSocket()
 	go c.pingStream()
 	go c.listenStream()
-	go c.socketWriteJSON()
 	go c.streamWriteJSON()
 
 	return c, nil
@@ -77,6 +78,36 @@ func (c *client) SubscribeCandles(symbol string) {
 		Symbol:          symbol,
 	}
 	c.streamMessageChannel <- request
+}
+
+func (c *client) GetCandles(end int, period int, start int, symbol string, ticks int) ([]socket.Candle, error) {
+	request := socket.Request{
+		Command: "getChartRangeRequest",
+		Arguments: socket.InfoArguments{
+			Info: socket.GetCandlesInfo{
+				End:    end,
+				Period: period,
+				Start:  start,
+				Symbol: symbol,
+				Ticks:  ticks,
+			},
+		},
+	}
+	// response := socket.Response{}
+	c.mutexSendMessage.Lock()
+	c.conn.WriteJSON(request)
+	_, message, _ := c.conn.ReadMessage()
+	fmt.Printf("RESPONSE=%s\n", message)
+	return nil, nil
+	// err := c.conn.ReadJSON(&response)
+	// c.mutexSendMessage.Unlock()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if response.Status != true {
+	// 	return nil, fmt.Errorf("Error on sending getChartRangeRequest: %+v, response:, %+v", request, response)
+	// }
+	// return response.ReturnData.RateInfos, nil
 }
 
 func (c *client) listenStream() {
@@ -112,17 +143,16 @@ func (c *client) pingSocket() {
 		request := struct {
 			Command string `json:"command"`
 		}{Command: "ping"}
-		c.socketMessageChannel <- request
 		response := socket.Response{}
+		c.mutexSendMessage.Lock()
+		c.conn.WriteJSON(request)
 		err := c.conn.ReadJSON(&response)
+		c.mutexSendMessage.Unlock()
 		if err != nil {
-			// TODO: Handle errors
-			fmt.Println(err.Error())
-		}
-		if response.Status != true {
-			fmt.Printf("Error on ping: %+v\n", response)
-		} else {
-			fmt.Println("Ping success")
+			//TODO: Handle error
+			fmt.Printf("Ping socket failed: %s", err.Error())
+		} else if response.Status != true {
+			fmt.Errorf("Error on sending request: %+v, response:, %+v", request, response)
 		}
 		time.Sleep(pingInterval)
 	}
@@ -144,14 +174,6 @@ func (c *client) streamWriteJSON() {
 		message := <-c.streamMessageChannel
 		c.streamConn.WriteJSON(message)
 		fmt.Printf("messageStream: %+v\n", message)
-	}
-}
-
-func (c *client) socketWriteJSON() {
-	for {
-		message := <-c.socketMessageChannel
-		c.conn.WriteJSON(message)
-		fmt.Printf("messageSocket: %+v\n", message)
 	}
 }
 
