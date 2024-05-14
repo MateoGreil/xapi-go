@@ -25,6 +25,8 @@ xapiRealClient, err := xapi.NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI
 
 ### GetCandles
 
+#### With subscription
+
 ```go
 xapiClient.SubscribeCandles("EURUSD")
 for {
@@ -32,6 +34,26 @@ for {
 	fmt.Printf("%+v\n", candle)
 }
 ```
+
+#### With query
+
+```go
+end := int(time.Now().Add(-24 * 1 * time.Hour).UnixMilli())
+period := 1
+ticks := 50
+start := int(time.Now().Add(-24 * time.Hour).UnixMilli())
+candles, err := xapiClient.GetCandles(end, period, start, "EURUSD", ticks)
+```
+
+| Value | Type | Description |
+| ----- | ---- | ----------- |
+| end | int | End of chart block (rounded down to the nearest interval and excluding) |
+| period | int | Period code |
+| start | int | Start of chart block (rounded down to the nearest interval and excluding) |
+| symbol | string | Symbol |
+| ticks | int | Number of ticks needed |
+
+More details here : http://developers.xstore.pro/documentation/current#getChartRangeRequest
 
 ## Contributions
 
