@@ -47,7 +47,6 @@ func TestGetCandles(t *testing.T) {
 	}
 
 	start := int(time.Now().Add(-24 * 1 * time.Hour).UnixMilli())
-	fmt.Printf("timestamp start: %d", start)
 	period := 1
 	ticks := 1
 	end := int(time.Now().Add(-24 * 1 * time.Hour).UnixMilli())
