@@ -1,5 +1,7 @@
 package socket
 
+import "encoding/json"
+
 type LoginResponse struct {
 	Status          bool   `json:"status"`
 	StreamSessionId string `json:"streamSessionId"`
@@ -8,14 +10,10 @@ type LoginResponse struct {
 }
 
 type Response struct {
-	Status          bool   `json:"status"`
-	StreamSessionId string `json:"streamSessionId"`
-	ErrorCode       string `json:"errorCode"`
-	ErrorDescr      string `json:"errorDescr"`
-	ReturnData      struct {
-		Digits    int      `json:"digits"`
-		RateInfos []Candle `json:"rateInfos"`
-	} `json:"returnData"`
+	Status     bool            `json:"status"`
+	ErrorCode  string          `json:"errorCode"`
+	ErrorDescr string          `json:"errorDescr"`
+	ReturnData json.RawMessage `json:"returnData"`
 }
 
 // TODO: Move it to a common package (stream and socket use it)

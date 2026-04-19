@@ -93,18 +93,11 @@ func (c *client) GetCandles(end int, period int, start int, symbol string, ticks
 			},
 		},
 	}
-	response := socket.Response{}
-	c.mutexSendMessage.Lock()
-	c.conn.WriteJSON(request)
-	err := c.conn.ReadJSON(&response)
-	c.mutexSendMessage.Unlock()
-	if err != nil {
+	var result socket.ChartResponse
+	if err := c.sendSocketCommand(request, &result); err != nil {
 		return nil, err
 	}
-	if response.Status != true {
-		return nil, fmt.Errorf("Error on sending getChartRangeRequest: %+v, response:, %+v", request, response)
-	}
-	return response.ReturnData.RateInfos, nil
+	return result.RateInfos, nil
 }
 
 func (c *client) listenStream() {
@@ -172,6 +165,28 @@ func (c *client) streamWriteJSON() {
 		c.streamConn.WriteJSON(message)
 		fmt.Printf("messageStream: %+v\n", message)
 	}
+}
+
+func (c *client) sendSocketCommand(request interface{}, result interface{}) error {
+	c.mutexSendMessage.Lock()
+	err := c.conn.WriteJSON(request)
+	if err != nil {
+		c.mutexSendMessage.Unlock()
+		return err
+	}
+	response := socket.Response{}
+	err = c.conn.ReadJSON(&response)
+	c.mutexSendMessage.Unlock()
+	if err != nil {
+		return err
+	}
+	if !response.Status {
+		return fmt.Errorf("%s: %s", response.ErrorCode, response.ErrorDescr)
+	}
+	if result != nil {
+		return json.Unmarshal(response.ReturnData, result)
+	}
+	return nil
 }
 
 func login(conn *websocket.Conn, userId string, password string) (string, error) {
