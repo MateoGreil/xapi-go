@@ -46,3 +46,16 @@ type TimeRangeArguments struct {
 	Start int `json:"start"`
 	End   int `json:"end"`
 }
+
+type SymbolVolumeArguments struct {
+	Symbol string  `json:"symbol"`
+	Volume float64 `json:"volume"`
+}
+
+type ProfitCalculationArguments struct {
+	Symbol     string  `json:"symbol"`
+	Cmd        int     `json:"cmd"`
+	OpenPrice  float64 `json:"openPrice"`
+	ClosePrice float64 `json:"closePrice"`
+	Volume     float64 `json:"volume"`
+}

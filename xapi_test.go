@@ -248,3 +248,39 @@ func TestGetVersion(t *testing.T) {
 		t.Error("expected non-empty version")
 	}
 }
+
+func TestGetCommissionDef(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = xapiClient.GetCommissionDef("EURUSD", 1.0)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestGetMarginTrade(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	margin, err := xapiClient.GetMarginTrade("EURUSD", 1.0)
+	if err != nil {
+		t.Error(err)
+	}
+	if margin <= 0 {
+		t.Error("expected positive margin")
+	}
+}
+
+func TestGetProfitCalculation(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = xapiClient.GetProfitCalculation("EURUSD", 0, 1.2000, 1.2100, 1.0)
+	if err != nil {
+		t.Error(err)
+	}
+}
