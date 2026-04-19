@@ -206,3 +206,45 @@ func TestGetMarginLevel(t *testing.T) {
 		t.Error("expected non-empty currency")
 	}
 }
+
+func TestGetServerTime(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := xapiClient.GetServerTime()
+	if err != nil {
+		t.Error(err)
+	}
+	if st.Time == 0 {
+		t.Error("expected non-zero server time")
+	}
+}
+
+func TestGetStepRules(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules, err := xapiClient.GetStepRules()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(rules) == 0 {
+		t.Error("expected at least one step rule")
+	}
+}
+
+func TestGetVersion(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := xapiClient.GetVersion()
+	if err != nil {
+		t.Error(err)
+	}
+	if v == "" {
+		t.Error("expected non-empty version")
+	}
+}
