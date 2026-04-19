@@ -40,6 +40,21 @@ func TestSuscribeCandles(t *testing.T) {
 	}
 }
 
+func TestGetChartLast(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := int(time.Now().Add(-24 * time.Hour).UnixMilli())
+	candles, err := xapiClient.GetChartLast(1, start, "EURUSD")
+	if err != nil {
+		t.Error(err)
+	}
+	if len(candles) == 0 {
+		t.Error("expected at least one candle")
+	}
+}
+
 func TestGetCandles(t *testing.T) {
 	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
 	if err != nil {

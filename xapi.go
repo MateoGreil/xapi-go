@@ -78,35 +78,6 @@ func NewClient(userId string, password string, connectionType string) (*client, 
 	return c, nil
 }
 
-func (c *client) SubscribeCandles(symbol string) {
-	request := stream.GetCandlesRequest{
-		Command:         "getCandles",
-		StreamSessionId: c.streamSessionId,
-		Symbol:          symbol,
-	}
-	c.streamMessageChannel <- request
-}
-
-func (c *client) GetCandles(end int, period int, start int, symbol string, ticks int) ([]socket.Candle, error) {
-	request := socket.Request{
-		Command: "getChartRangeRequest",
-		Arguments: socket.InfoArguments{
-			Info: socket.GetCandlesInfo{
-				End:    end,
-				Period: period,
-				Start:  start,
-				Symbol: symbol,
-				Ticks:  ticks,
-			},
-		},
-	}
-	var result socket.ChartResponse
-	if err := c.sendSocketCommand(request, &result); err != nil {
-		return nil, err
-	}
-	return result.RateInfos, nil
-}
-
 func (c *client) listenStream() {
 	for {
 		_, message, err := c.streamConn.ReadMessage()

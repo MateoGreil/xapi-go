@@ -21,3 +21,9 @@ type GetCandlesInfo struct {
 	Symbol string `json:"symbol"`
 	Ticks  int    `json:"ticks"`
 }
+
+type GetChartLastInfo struct {
+	Period int    `json:"period"`
+	Start  int    `json:"start"`
+	Symbol string `json:"symbol"`
+}
