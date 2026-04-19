@@ -54,14 +54,13 @@ func NewClient(userId string, password string, connectionType string) (*client, 
 	}
 	getKeepAlive(streamConn, streamSessionId)
 
-	var m sync.Mutex
 	c := &client{
 		conn:                 conn,
 		streamConn:           streamConn,
 		streamSessionId:      streamSessionId,
 		streamMessageChannel: make(chan interface{}),
 		CandlesChannel:       make(chan stream.Candle),
-		mutexSendMessage:     m,
+		mutexSendMessage:     sync.Mutex{},
 	}
 	go c.pingSocket()
 	go c.pingStream()
@@ -142,7 +141,7 @@ func (c *client) pingSocket() {
 			//TODO: Handle error
 			fmt.Printf("Ping socket failed: %s", err.Error())
 		} else if response.Status != true {
-			fmt.Errorf("Error on sending request: %+v, response:, %+v", request, response)
+			fmt.Printf("ping socket error: request=%+v response=%+v\n", request, response)
 		}
 		time.Sleep(pingInterval)
 	}
