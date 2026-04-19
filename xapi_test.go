@@ -9,46 +9,103 @@ import (
 	"github.com/MateoGreil/xapi-go/internal/protocols/socket"
 )
 
-func TestNewClient(t *testing.T) {
-	_, err := NewClient(os.Getenv("XAPI_USER_ID"), "wrong-password", "demo")
-	if err.Error() != "userPasswordCheck: Invalid login or password" {
-		t.Error(err)
-	}
+// --- Integration guard ---
 
-	_, err = NewClient("wrong-user-id", os.Getenv("XAPI_PASSWORD"), "demo")
-	if err.Error() != "Invalid parameters" {
-		fmt.Println(err)
-		t.Error(err)
-	}
-
-	_, err = NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Error(err)
+func skipIfNoCredentials(t *testing.T) {
+	t.Helper()
+	if os.Getenv("XAPI_USER_ID") == "" || os.Getenv("XAPI_PASSWORD") == "" {
+		t.Skip("integration test: set XAPI_USER_ID and XAPI_PASSWORD to run")
 	}
 }
 
-func TestSuscribeCandles(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+func integrationClient(t *testing.T) *client {
+	t.Helper()
+	skipIfNoCredentials(t)
+	c, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("NewClient: %v", err)
 	}
+	return c
+}
 
-	xapiClient.SubscribeCandles("EURUSD")
+// --- Unit tests (mock server, always run) ---
+
+func TestNewClient(t *testing.T) {
+	c, _ := newTestClient(t)
+	if c == nil {
+		t.Error("expected non-nil client")
+	}
+}
+
+func TestSubscribeCandles(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeCandles("EURUSD")
 	select {
-	case candle := <-xapiClient.CandlesChannel:
-		fmt.Printf("%+v\n", candle)
-	case <-time.After(2 * time.Minute):
-		t.Error("Did not receive candles")
+	case candle := <-c.CandlesChannel:
+		if candle.Symbol != "EURUSD" {
+			t.Errorf("expected EURUSD candle, got symbol %q", candle.Symbol)
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("timed out waiting for candle")
+	}
+}
+
+func TestSubscribeTickPrices(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeTickPrices("EURUSD")
+	select {
+	case tick := <-c.TickPricesChannel:
+		if tick.Symbol != "EURUSD" {
+			t.Errorf("expected EURUSD tick, got symbol %q", tick.Symbol)
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("timed out waiting for tick")
+	}
+}
+
+func TestSubscribeBalance(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeBalance()
+	select {
+	case balance := <-c.BalanceChannel:
+		if balance.Balance <= 0 {
+			t.Errorf("expected positive balance, got %f", balance.Balance)
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("timed out waiting for balance")
+	}
+}
+
+func TestSubscribeTrades(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeTrades()
+	select {
+	case trade := <-c.TradesChannel:
+		if trade.Order == 0 {
+			t.Error("expected non-zero order")
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("timed out waiting for trade")
+	}
+}
+
+func TestSubscribeNews(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeNews()
+	select {
+	case news := <-c.NewsChannel:
+		if news.Title == "" {
+			t.Error("expected non-empty news title")
+		}
+	case <-time.After(2 * time.Second):
+		t.Error("timed out waiting for news")
 	}
 }
 
 func TestGetChartLast(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
+	c, _ := newTestClient(t)
 	start := int(time.Now().Add(-24 * time.Hour).UnixMilli())
-	candles, err := xapiClient.GetChartLast(1, start, "EURUSD")
+	candles, err := c.GetChartLast(1, start, "EURUSD")
 	if err != nil {
 		t.Error(err)
 	}
@@ -58,44 +115,30 @@ func TestGetChartLast(t *testing.T) {
 }
 
 func TestGetCandles(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	c, _ := newTestClient(t)
+	start := int(time.Now().Add(-24 * time.Hour).UnixMilli())
+	end := int(time.Now().UnixMilli())
+
+	candles, err := c.GetCandles(end, 1, start, "EURUSD", 1)
 	if err != nil {
 		t.Error(err)
 	}
-
-	start := int(time.Now().Add(-24 * 1 * time.Hour).UnixMilli())
-	period := 1
-	ticks := 1
-	end := int(time.Now().Add(-24 * 1 * time.Hour).UnixMilli())
-	candles, err := xapiClient.GetCandles(start, period, end, "EURUSD", ticks)
-	if err != nil {
-		t.Error(err)
-	} else {
-		length := len(candles)
-		if length != 1 {
-			t.Errorf("Should contain 1 candle, but contains %d", length)
-		}
+	if len(candles) != 1 {
+		t.Errorf("expected 1 candle, got %d", len(candles))
 	}
 
-	ticks = 50
-	candles, err = xapiClient.GetCandles(start, period, end, "EURUSD", ticks)
+	candles, err = c.GetCandles(end, 1, start, "EURUSD", 50)
 	if err != nil {
 		t.Error(err)
-	} else {
-		length := len(candles)
-		if length != 50 {
-			t.Errorf("Should contain 50 candle, but contains %d", length)
-		}
 	}
-
+	if len(candles) != 50 {
+		t.Errorf("expected 50 candles, got %d", len(candles))
+	}
 }
 
 func TestGetAllSymbols(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	symbols, err := xapiClient.GetAllSymbols()
+	c, _ := newTestClient(t)
+	symbols, err := c.GetAllSymbols()
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,11 +148,8 @@ func TestGetAllSymbols(t *testing.T) {
 }
 
 func TestGetSymbol(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	symbol, err := xapiClient.GetSymbol("EURUSD")
+	c, _ := newTestClient(t)
+	symbol, err := c.GetSymbol("EURUSD")
 	if err != nil {
 		t.Error(err)
 	}
@@ -119,22 +159,16 @@ func TestGetSymbol(t *testing.T) {
 }
 
 func TestGetCalendar(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = xapiClient.GetCalendar()
+	c, _ := newTestClient(t)
+	_, err := c.GetCalendar()
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestGetTickPrices(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ticks, err := xapiClient.GetTickPrices([]string{"EURUSD"}, 0, 0)
+	c, _ := newTestClient(t)
+	ticks, err := c.GetTickPrices([]string{"EURUSD"}, 0, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -144,11 +178,8 @@ func TestGetTickPrices(t *testing.T) {
 }
 
 func TestGetTradingHours(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	hours, err := xapiClient.GetTradingHours([]string{"EURUSD"})
+	c, _ := newTestClient(t)
+	hours, err := c.GetTradingHours([]string{"EURUSD"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -158,35 +189,26 @@ func TestGetTradingHours(t *testing.T) {
 }
 
 func TestGetNews(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
+	c, _ := newTestClient(t)
 	start := int(time.Now().Add(-7 * 24 * time.Hour).UnixMilli())
-	_, err = xapiClient.GetNews(start, 0)
+	_, err := c.GetNews(start, 0)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestGetIbsHistory(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
+	c, _ := newTestClient(t)
 	start := int(time.Now().Add(-30 * 24 * time.Hour).UnixMilli())
-	_, err = xapiClient.GetIbsHistory(start, 0)
+	_, err := c.GetIbsHistory(start, 0)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestGetCurrentUserData(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	data, err := xapiClient.GetCurrentUserData()
+	c, _ := newTestClient(t)
+	data, err := c.GetCurrentUserData()
 	if err != nil {
 		t.Error(err)
 	}
@@ -196,11 +218,8 @@ func TestGetCurrentUserData(t *testing.T) {
 }
 
 func TestGetMarginLevel(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	level, err := xapiClient.GetMarginLevel()
+	c, _ := newTestClient(t)
+	level, err := c.GetMarginLevel()
 	if err != nil {
 		t.Error(err)
 	}
@@ -210,11 +229,8 @@ func TestGetMarginLevel(t *testing.T) {
 }
 
 func TestGetServerTime(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	st, err := xapiClient.GetServerTime()
+	c, _ := newTestClient(t)
+	st, err := c.GetServerTime()
 	if err != nil {
 		t.Error(err)
 	}
@@ -224,11 +240,8 @@ func TestGetServerTime(t *testing.T) {
 }
 
 func TestGetStepRules(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	rules, err := xapiClient.GetStepRules()
+	c, _ := newTestClient(t)
+	rules, err := c.GetStepRules()
 	if err != nil {
 		t.Error(err)
 	}
@@ -238,11 +251,8 @@ func TestGetStepRules(t *testing.T) {
 }
 
 func TestGetVersion(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	v, err := xapiClient.GetVersion()
+	c, _ := newTestClient(t)
+	v, err := c.GetVersion()
 	if err != nil {
 		t.Error(err)
 	}
@@ -252,55 +262,56 @@ func TestGetVersion(t *testing.T) {
 }
 
 func TestGetCommissionDef(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = xapiClient.GetCommissionDef("EURUSD", 1.0)
+	c, _ := newTestClient(t)
+	_, err := c.GetCommissionDef("EURUSD", 1.0)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestGetMarginTrade(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	margin, err := xapiClient.GetMarginTrade("EURUSD", 1.0)
+	c, _ := newTestClient(t)
+	margin, err := c.GetMarginTrade("EURUSD", 1.0)
 	if err != nil {
 		t.Error(err)
 	}
 	if margin <= 0 {
-		t.Error("expected positive margin")
+		t.Errorf("expected positive margin, got %f", margin)
 	}
 }
 
 func TestGetProfitCalculation(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	c, _ := newTestClient(t)
+	_, err := c.GetProfitCalculation("EURUSD", 0, 1.2000, 1.2100, 1.0)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	_, err = xapiClient.GetProfitCalculation("EURUSD", 0, 1.2000, 1.2100, 1.0)
+}
+
+func TestGetTrades(t *testing.T) {
+	c, _ := newTestClient(t)
+	_, err := c.GetTrades(true)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestGetTradesHistory(t *testing.T) {
+	c, _ := newTestClient(t)
+	start := int(time.Now().Add(-30 * 24 * time.Hour).UnixMilli())
+	_, err := c.GetTradesHistory(start, 0)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestTradeTransaction(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ticks, err := xapiClient.GetTickPrices([]string{"EURUSD"}, 0, 0)
-	if err != nil || len(ticks) == 0 {
-		t.Skip("could not get tick prices")
-	}
-	orderNum, err := xapiClient.TradeTransaction(socket.TradeTransInfo{
+	c, _ := newTestClient(t)
+	orderNum, err := c.TradeTransaction(socket.TradeTransInfo{
 		Cmd:    0,
 		Symbol: "EURUSD",
 		Volume: 0.01,
-		Price:  ticks[0].Ask,
+		Price:  1.2,
 		Type:   0,
 	})
 	if err != nil {
@@ -310,42 +321,68 @@ func TestTradeTransaction(t *testing.T) {
 	if orderNum == 0 {
 		t.Error("expected non-zero order number")
 	}
-	status, err := xapiClient.TradeTransactionStatus(orderNum)
+	status, err := c.TradeTransactionStatus(orderNum)
 	if err != nil {
 		t.Error(err)
 	}
-	_ = status
+	if status.RequestStatus == 0 {
+		t.Error("expected non-zero request status")
+	}
 }
 
 func TestLogout(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := xapiClient.Logout(); err != nil {
+	c, _ := newTestClient(t)
+	if err := c.Logout(); err != nil {
 		t.Error(err)
 	}
 }
 
-func TestGetTrades(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
-	if err != nil {
-		t.Fatal(err)
+// --- Integration tests (require XAPI_USER_ID + XAPI_PASSWORD) ---
+
+func TestIntegrationNewClientBadCredentials(t *testing.T) {
+	skipIfNoCredentials(t)
+
+	_, err := NewClient(os.Getenv("XAPI_USER_ID"), "wrong-password", "demo")
+	if err == nil || err.Error() != "userPasswordCheck: Invalid login or password" {
+		t.Errorf("unexpected error: %v", err)
 	}
-	_, err = xapiClient.GetTrades(true)
-	if err != nil {
-		t.Error(err)
+
+	_, err = NewClient("wrong-user-id", os.Getenv("XAPI_PASSWORD"), "demo")
+	if err == nil || err.Error() != "Invalid parameters" {
+		fmt.Println(err)
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 
-func TestGetTradesHistory(t *testing.T) {
-	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+func TestIntegrationGetCandles(t *testing.T) {
+	c := integrationClient(t)
+	start := int(time.Now().Add(-24 * time.Hour).UnixMilli())
+	end := int(time.Now().UnixMilli())
+
+	candles, err := c.GetCandles(end, 1, start, "EURUSD", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	start := int(time.Now().Add(-30 * 24 * time.Hour).UnixMilli())
-	_, err = xapiClient.GetTradesHistory(start, 0)
+	if len(candles) != 1 {
+		t.Errorf("expected 1 candle, got %d", len(candles))
+	}
+
+	candles, err = c.GetCandles(end, 1, start, "EURUSD", 50)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+	if len(candles) != 50 {
+		t.Errorf("expected 50 candles, got %d", len(candles))
+	}
+}
+
+func TestIntegrationSubscribeCandles(t *testing.T) {
+	c := integrationClient(t)
+	c.SubscribeCandles("EURUSD")
+	select {
+	case candle := <-c.CandlesChannel:
+		fmt.Printf("%+v\n", candle)
+	case <-time.After(2 * time.Minute):
+		t.Error("timed out waiting for candle")
 	}
 }
