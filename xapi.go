@@ -129,16 +129,8 @@ func (c *client) pingSocket() {
 		request := struct {
 			Command string `json:"command"`
 		}{Command: "ping"}
-		response := socket.Response{}
-		c.mutexSendMessage.Lock()
-		c.conn.WriteJSON(request)
-		err := c.conn.ReadJSON(&response)
-		c.mutexSendMessage.Unlock()
-		if err != nil {
-			//TODO: Handle error
-			fmt.Printf("Ping socket failed: %s", err.Error())
-		} else if response.Status != true {
-			fmt.Printf("ping socket error: request=%+v response=%+v\n", request, response)
+		if err := c.sendSocketCommand(request, nil); err != nil {
+			fmt.Printf("ping socket failed: %s\n", err.Error())
 		}
 		time.Sleep(pingInterval)
 	}
@@ -180,6 +172,13 @@ func (c *client) sendSocketCommand(request interface{}, result interface{}) erro
 		return json.Unmarshal(response.ReturnData, result)
 	}
 	return nil
+}
+
+func (c *client) Logout() error {
+	request := struct {
+		Command string `json:"command"`
+	}{Command: "logout"}
+	return c.sendSocketCommand(request, nil)
 }
 
 func login(conn *websocket.Conn, userId string, password string) (string, error) {

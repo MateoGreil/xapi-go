@@ -317,6 +317,16 @@ func TestTradeTransaction(t *testing.T) {
 	_ = status
 }
 
+func TestLogout(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := xapiClient.Logout(); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestGetTrades(t *testing.T) {
 	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
 	if err != nil {
