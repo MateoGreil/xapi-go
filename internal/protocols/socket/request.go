@@ -47,6 +47,14 @@ type TimeRangeArguments struct {
 	End   int `json:"end"`
 }
 
+type GetTradesArguments struct {
+	OpenedOnly bool `json:"openedOnly"`
+}
+
+type GetTradeRecordsArguments struct {
+	Orders []int `json:"orders"`
+}
+
 type SymbolVolumeArguments struct {
 	Symbol string  `json:"symbol"`
 	Volume float64 `json:"volume"`

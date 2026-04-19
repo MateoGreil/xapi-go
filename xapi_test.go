@@ -284,3 +284,26 @@ func TestGetProfitCalculation(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestGetTrades(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = xapiClient.GetTrades(true)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestGetTradesHistory(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := int(time.Now().Add(-30 * 24 * time.Hour).UnixMilli())
+	_, err = xapiClient.GetTradesHistory(start, 0)
+	if err != nil {
+		t.Error(err)
+	}
+}
