@@ -178,3 +178,31 @@ func TestGetIbsHistory(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestGetCurrentUserData(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := xapiClient.GetCurrentUserData()
+	if err != nil {
+		t.Error(err)
+	}
+	if data.Currency == "" {
+		t.Error("expected non-empty currency")
+	}
+}
+
+func TestGetMarginLevel(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	level, err := xapiClient.GetMarginLevel()
+	if err != nil {
+		t.Error(err)
+	}
+	if level.Currency == "" {
+		t.Error("expected non-empty currency")
+	}
+}
