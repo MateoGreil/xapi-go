@@ -27,3 +27,22 @@ type GetChartLastInfo struct {
 	Start  int    `json:"start"`
 	Symbol string `json:"symbol"`
 }
+
+type SymbolArguments struct {
+	Symbol string `json:"symbol"`
+}
+
+type TickPricesArguments struct {
+	Symbols   []string `json:"symbols"`
+	Timestamp int      `json:"timestamp"`
+	Level     int      `json:"level"`
+}
+
+type TradingHoursArguments struct {
+	Symbols []string `json:"symbols"`
+}
+
+type TimeRangeArguments struct {
+	Start int `json:"start"`
+	End   int `json:"end"`
+}

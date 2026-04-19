@@ -33,3 +33,15 @@ type GetNewsRequest struct {
 	Command         string `json:"command"`
 	StreamSessionId string `json:"streamSessionId"`
 }
+
+type StopCandlesRequest struct {
+	Command         string `json:"command"`
+	StreamSessionId string `json:"streamSessionId"`
+	Symbol          string `json:"symbol"`
+}
+
+type StopTickPricesRequest struct {
+	Command         string `json:"command"`
+	StreamSessionId string `json:"streamSessionId"`
+	Symbol          string `json:"symbol"`
+}

@@ -87,3 +87,94 @@ func TestGetCandles(t *testing.T) {
 	}
 
 }
+
+func TestGetAllSymbols(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	symbols, err := xapiClient.GetAllSymbols()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(symbols) == 0 {
+		t.Error("expected at least one symbol")
+	}
+}
+
+func TestGetSymbol(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	symbol, err := xapiClient.GetSymbol("EURUSD")
+	if err != nil {
+		t.Error(err)
+	}
+	if symbol.Symbol != "EURUSD" {
+		t.Errorf("expected EURUSD, got %s", symbol.Symbol)
+	}
+}
+
+func TestGetCalendar(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = xapiClient.GetCalendar()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestGetTickPrices(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ticks, err := xapiClient.GetTickPrices([]string{"EURUSD"}, 0, 0)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(ticks) == 0 {
+		t.Error("expected at least one tick")
+	}
+}
+
+func TestGetTradingHours(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hours, err := xapiClient.GetTradingHours([]string{"EURUSD"})
+	if err != nil {
+		t.Error(err)
+	}
+	if len(hours) == 0 {
+		t.Error("expected at least one trading hours record")
+	}
+}
+
+func TestGetNews(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := int(time.Now().Add(-7 * 24 * time.Hour).UnixMilli())
+	_, err = xapiClient.GetNews(start, 0)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestGetIbsHistory(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := int(time.Now().Add(-30 * 24 * time.Hour).UnixMilli())
+	_, err = xapiClient.GetIbsHistory(start, 0)
+	if err != nil {
+		t.Error(err)
+	}
+}

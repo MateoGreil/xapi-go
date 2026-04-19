@@ -52,11 +52,7 @@ func (c *client) SubscribeCandles(symbol string) {
 }
 
 func (c *client) StopCandles(symbol string) {
-	c.streamMessageChannel <- struct {
-		Command         string `json:"command"`
-		StreamSessionId string `json:"streamSessionId"`
-		Symbol          string `json:"symbol"`
-	}{
+	c.streamMessageChannel <- stream.StopCandlesRequest{
 		Command:         "stopCandles",
 		StreamSessionId: c.streamSessionId,
 		Symbol:          symbol,
