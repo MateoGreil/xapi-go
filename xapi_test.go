@@ -330,6 +330,44 @@ func TestTradeTransaction(t *testing.T) {
 	}
 }
 
+func TestGetTradeRecords(t *testing.T) {
+	c, _ := newTestClient(t)
+	_, err := c.GetTradeRecords([]int{12345})
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestStopCandles(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeCandles("EURUSD")
+	c.StopCandles("EURUSD")
+}
+
+func TestStopTickPrices(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeTickPrices("EURUSD")
+	c.StopTickPrices("EURUSD")
+}
+
+func TestStopBalance(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeBalance()
+	c.StopBalance()
+}
+
+func TestStopTrades(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeTrades()
+	c.StopTrades()
+}
+
+func TestStopNews(t *testing.T) {
+	c, _ := newTestClient(t)
+	c.SubscribeNews()
+	c.StopNews()
+}
+
 func TestLogout(t *testing.T) {
 	c, _ := newTestClient(t)
 	if err := c.Logout(); err != nil {
