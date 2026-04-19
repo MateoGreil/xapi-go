@@ -168,15 +168,12 @@ func (c *client) streamWriteJSON() {
 
 func (c *client) sendSocketCommand(request interface{}, result interface{}) error {
 	c.mutexSendMessage.Lock()
-	err := c.conn.WriteJSON(request)
-	if err != nil {
-		c.mutexSendMessage.Unlock()
+	defer c.mutexSendMessage.Unlock()
+	if err := c.conn.WriteJSON(request); err != nil {
 		return err
 	}
 	response := socket.Response{}
-	err = c.conn.ReadJSON(&response)
-	c.mutexSendMessage.Unlock()
-	if err != nil {
+	if err := c.conn.ReadJSON(&response); err != nil {
 		return err
 	}
 	if !response.Status {
