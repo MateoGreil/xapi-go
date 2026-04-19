@@ -17,6 +17,10 @@ type client struct {
 	streamSessionId      string
 	streamMessageChannel chan interface{}
 	CandlesChannel       chan stream.Candle
+	TickPricesChannel    chan stream.Tick
+	BalanceChannel       chan stream.Balance
+	TradesChannel        chan stream.Trade
+	NewsChannel          chan stream.News
 	mutexSendMessage     sync.Mutex
 }
 
@@ -60,6 +64,10 @@ func NewClient(userId string, password string, connectionType string) (*client, 
 		streamSessionId:      streamSessionId,
 		streamMessageChannel: make(chan interface{}),
 		CandlesChannel:       make(chan stream.Candle),
+		TickPricesChannel:    make(chan stream.Tick),
+		BalanceChannel:       make(chan stream.Balance),
+		TradesChannel:        make(chan stream.Trade),
+		NewsChannel:          make(chan stream.News),
 		mutexSendMessage:     sync.Mutex{},
 	}
 	go c.pingSocket()
@@ -104,25 +112,43 @@ func (c *client) listenStream() {
 		_, message, err := c.streamConn.ReadMessage()
 		if err != nil {
 			fmt.Println(err.Error())
+			continue
 		}
 		response := stream.Response{}
-		err = json.Unmarshal(message, &response)
-		if err != nil {
-			fmt.Printf("message: %s\n", message)
-			fmt.Println(err.Error())
+		if err = json.Unmarshal(message, &response); err != nil {
+			fmt.Printf("stream unmarshal error: %s\n", err.Error())
+			continue
 		}
 		switch response.Command {
 		case "candle":
-			responseCandle := stream.ResponseCandle{}
-			err = json.Unmarshal(message, &responseCandle)
-			if err != nil {
-				fmt.Println(err.Error())
+			var r stream.ResponseCandle
+			if err = json.Unmarshal(message, &r); err == nil {
+				c.CandlesChannel <- r.Data
 			}
-			c.CandlesChannel <- responseCandle.Data
+		case "tickPrices":
+			var r stream.ResponseTick
+			if err = json.Unmarshal(message, &r); err == nil {
+				c.TickPricesChannel <- r.Data
+			}
+		case "balance":
+			var r stream.ResponseBalance
+			if err = json.Unmarshal(message, &r); err == nil {
+				c.BalanceChannel <- r.Data
+			}
+		case "trade":
+			var r stream.ResponseTrade
+			if err = json.Unmarshal(message, &r); err == nil {
+				c.TradesChannel <- r.Data
+			}
+		case "news":
+			var r stream.ResponseNews
+			if err = json.Unmarshal(message, &r); err == nil {
+				c.NewsChannel <- r.Data
+			}
 		case "keepAlive":
-			fmt.Printf("keepAlive received\n")
+			// heartbeat, no action needed
 		default:
-			fmt.Printf("Unknown stream message: %s\n", message)
+			fmt.Printf("unknown stream message: %s\n", message)
 		}
 	}
 }
