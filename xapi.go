@@ -30,19 +30,20 @@ const (
 )
 
 func NewClient(userId string, password string, connectionType string) (*client, error) {
-	var websocketURL string
-	var websocketStreamURL string
-
+	var mainURL, streamURL string
 	switch connectionType {
 	case "demo":
-		websocketURL = websocketBaseURL + "/demo"
-		websocketStreamURL = websocketBaseURL + "/demoStream"
+		mainURL = websocketBaseURL + "/demo"
+		streamURL = websocketBaseURL + "/demoStream"
 	case "real":
-		websocketURL = websocketBaseURL + "/real"
-		websocketStreamURL = websocketBaseURL + "/realStream"
+		mainURL = websocketBaseURL + "/real"
+		streamURL = websocketBaseURL + "/realStream"
 	}
+	return newClientWithURLs(userId, password, mainURL, streamURL)
+}
 
-	conn, _, err := websocket.DefaultDialer.Dial(websocketURL, nil)
+func newClientWithURLs(userId string, password string, mainURL string, streamURL string) (*client, error) {
+	conn, _, err := websocket.DefaultDialer.Dial(mainURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +53,7 @@ func NewClient(userId string, password string, connectionType string) (*client, 
 		return nil, err
 	}
 
-	streamConn, _, err := websocket.DefaultDialer.Dial(websocketStreamURL, nil)
+	streamConn, _, err := websocket.DefaultDialer.Dial(streamURL, nil)
 	if err != nil {
 		return nil, err
 	}
