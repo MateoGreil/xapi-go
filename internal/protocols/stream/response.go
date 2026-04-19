@@ -9,24 +9,27 @@ type KeepAliveResponse struct {
 	Data    KeepAliveData `json:"data"`
 }
 
-type KeepAliveData struct {
-	Timestamp int `json:"timestamp"`
-}
-
 type ResponseCandle struct {
-	Command string `json:"response"`
+	Command string `json:"command"`
 	Data    Candle `json:"data"`
 }
 
-// TODO: Move it to a common package (stream and socket use it)
-type Candle struct {
-	Close     float64 `json:"close"`
-	Ctm       int64   `json:"ctm"`
-	CtmString string  `json:"ctmString"`
-	High      float64 `json:"high"`
-	Low       float64 `json:"low"`
-	Open      float64 `json:"open"`
-	QuoteId   int     `json:"quoteId"`
-	Symbol    string  `json:"symbol"`
-	Vol       float64 `json:"vol"`
+type ResponseTick struct {
+	Command string `json:"command"`
+	Data    Tick   `json:"data"`
+}
+
+type ResponseBalance struct {
+	Command string  `json:"command"`
+	Data    Balance `json:"data"`
+}
+
+type ResponseTrade struct {
+	Command string `json:"command"`
+	Data    Trade  `json:"data"`
+}
+
+type ResponseNews struct {
+	Command string `json:"command"`
+	Data    News   `json:"data"`
 }
