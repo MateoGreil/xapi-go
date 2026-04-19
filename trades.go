@@ -54,3 +54,27 @@ func (c *client) StopTrades() {
 		StreamSessionId: c.streamSessionId,
 	}
 }
+
+func (c *client) TradeTransaction(info socket.TradeTransInfo) (int, error) {
+	request := socket.Request{
+		Command:   "tradeTransaction",
+		Arguments: socket.TradeTransactionArguments{TradeTransInfo: info},
+	}
+	var result socket.TradeTransactionResponse
+	if err := c.sendSocketCommand(request, &result); err != nil {
+		return 0, err
+	}
+	return result.Order, nil
+}
+
+func (c *client) TradeTransactionStatus(order int) (socket.TradeTransactionStatusResponse, error) {
+	request := socket.Request{
+		Command:   "tradeTransactionStatus",
+		Arguments: socket.TradeTransactionStatusArguments{Order: order},
+	}
+	var result socket.TradeTransactionStatusResponse
+	if err := c.sendSocketCommand(request, &result); err != nil {
+		return socket.TradeTransactionStatusResponse{}, err
+	}
+	return result, nil
+}

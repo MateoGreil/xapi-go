@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/MateoGreil/xapi-go/internal/protocols/socket"
 )
 
 func TestNewClient(t *testing.T) {
@@ -283,6 +285,36 @@ func TestGetProfitCalculation(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestTradeTransaction(t *testing.T) {
+	xapiClient, err := NewClient(os.Getenv("XAPI_USER_ID"), os.Getenv("XAPI_PASSWORD"), "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ticks, err := xapiClient.GetTickPrices([]string{"EURUSD"}, 0, 0)
+	if err != nil || len(ticks) == 0 {
+		t.Skip("could not get tick prices")
+	}
+	orderNum, err := xapiClient.TradeTransaction(socket.TradeTransInfo{
+		Cmd:    0,
+		Symbol: "EURUSD",
+		Volume: 0.01,
+		Price:  ticks[0].Ask,
+		Type:   0,
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if orderNum == 0 {
+		t.Error("expected non-zero order number")
+	}
+	status, err := xapiClient.TradeTransactionStatus(orderNum)
+	if err != nil {
+		t.Error(err)
+	}
+	_ = status
 }
 
 func TestGetTrades(t *testing.T) {

@@ -67,3 +67,11 @@ type ProfitCalculationArguments struct {
 	ClosePrice float64 `json:"closePrice"`
 	Volume     float64 `json:"volume"`
 }
+
+type TradeTransactionArguments struct {
+	TradeTransInfo TradeTransInfo `json:"tradeTransInfo"`
+}
+
+type TradeTransactionStatusArguments struct {
+	Order int `json:"order"`
+}
