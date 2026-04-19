@@ -7,7 +7,7 @@ This project makes it possible to get data from Forex market, execute market or 
 
 This module may can be used for [X-Trade Brokers](https://www.xtb.com/en) xStation5 accounts
 
-API documentation: [http://developers.xstore.pro/documentation](http://developers.xstore.pro/documentation)
+API documentation: [https://xopenhub.pro/api/xapi-protocol-documentation/](https://xopenhub.pro/api/xapi-protocol-documentation/)
 
 ## Disclaimer
 
@@ -55,7 +55,7 @@ candles, err := xapiClient.GetCandles(end, period, start, "EURUSD", ticks)
 | symbol | string | Symbol |
 | ticks | int | Number of ticks needed |
 
-More details here : http://developers.xstore.pro/documentation/current#getChartRangeRequest
+More details here: https://xopenhub.pro/api/xapi-protocol-documentation/
 
 ## Contributions
 

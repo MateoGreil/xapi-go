@@ -21,7 +21,7 @@ type client struct {
 }
 
 const (
-	websocketBaseURL = "wss://ws.xtb.com"
+	websocketBaseURL = "wss://ws.xapi.pro"
 	pingInterval     = 5 * time.Minute
 )
 
